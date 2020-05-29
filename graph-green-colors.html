@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.axis text {
+  font: 10px sans-serif;
+}
+
+.cells path {
+  fill: none;
+  pointer-events: all;
+}
+
+.cells :hover circle {
+  fill: red;
+}
+
+</style>
+
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz"></div>
+<script src="colors.js"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+
+const hexToHsl = hex => {
+  var r = parseInt(hex.substr(1,2), 16); // Grab the hex representation of red (chars 1-2) and convert to decimal (base 10).
+  var g = parseInt(hex.substr(3,2), 16);
+  var b = parseInt(hex.substr(5,2), 16);
+  r /= 255, g /= 255, b /= 255;
+  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var h, s, l = (max + min) / 2;
+
+  if (max == min) {
+      h = s = 0; // achromatic
+  } else {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max){
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+  }
+
+  return {
+    hue: Math.floor(h * 360),
+    saturation: s,
+    lightness: l,
+  };
+}
+
+const cssColorNodes = Object.entries(cssColors).map(a => ({name: a[0], hex: a[1], hsl: hexToHsl(a[1])}));
+
+const greenColors = cssColorNodes.filter(a => a.hsl.hue > 70 && a.hsl.hue < 160)
+
+// set the dimensions and margins of the graph
+var margin = {top: 10, right: 30, bottom: 30, left: 60},
+    width = 460 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+var svg = d3.select("#my_dataviz")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+//Read the data
+d3.csv("https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/2_TwoNum.csv", function(data) {
+
+  // Add X axis
+  var x = d3.scaleLinear()
+    .domain([0, 1])
+    .range([ 0, width ]);
+  svg.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x));
+
+  // Add Y axis
+  var y = d3.scaleLinear()
+    .domain([0, 1])
+    .range([ height, 0]);
+  svg.append("g")
+    .call(d3.axisLeft(y));
+
+  // Add dots
+  svg.append('g')
+    .selectAll("dot")
+    .data(greenColors)
+    .enter()
+    .append("circle")
+      .attr("cx", function (d) { return x(d.hsl.lightness); } )
+      .attr("cy", function (d) { return y(d.hsl.saturation); } )
+      .attr("r", 3)
+      .style("fill", function(d) { return d.hex})
+
+})
+
+</script>
