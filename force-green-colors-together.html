@@ -61,10 +61,8 @@ const hexToHsl = hex => {
 
 const cssColorNodes = Object.entries(cssColors).map(a => ({name: a[0], hex: a[1], hsl: hexToHsl(a[1])}));
 
-const greenColors = cssColorNodes.filter(a => a.hsl.hue > 70 && a.hsl.hue < 160)
-
 // set the dimensions and margins of the graph
-var margin = {top: 10, right: 30, bottom: 30, left: 60},
+var margin = {top: 60, right: 30, bottom: 30, left: 60},
     width = 460 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
@@ -78,36 +76,59 @@ var svg = d3.select("#my_dataviz")
           "translate(" + margin.left + "," + margin.top + ")");
 
 //Read the data
-d3.csv("https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/2_TwoNum.csv", function(data) {
 
-  // Add X axis
-  var x = d3.scaleLinear()
-    .domain([0, 1])
-    .range([ 0, width ]);
-  svg.append("g")
-    .attr("transform", "translate(0," + height + ")")
-    .call(d3.axisBottom(x));
+// Add X axis
+var x = d3.scaleLinear()
+  .domain([0, 1])
+  .range([ 0, width ]);
+svg.append("g")
+  .attr("transform", "translate(0," + height + ")")
+  .call(d3.axisBottom(x));
 
-  // Add Y axis
-  var y = d3.scaleLinear()
-    .domain([0, 1])
-    .range([ height, 0]);
-  svg.append("g")
-    .call(d3.axisLeft(y));
+// Add Y axis
+var y = d3.scaleLinear()
+  .domain([0, 1])
+  .range([ height, 0]);
+svg.append("g")
+  .call(d3.axisLeft(y));
 
-  // Add dots
-  svg.append('g')
-    .selectAll("dot")
-    .data(greenColors)
-    .enter()
-    .append("circle")
-      .attr("cx", function (d) { return x(d.hsl.lightness); } )
-      .attr("cy", function (d) { return y(d.hsl.saturation); } )
-      .attr("r", 3)
-      .style("fill", function(d) { return d.hex})
-      .on("mouseover", function(d) { console.log(d)})
+const greenColors = cssColorNodes.filter(a => a.hsl.hue > 70 && a.hsl.hue < 160)
+  .map(a => Object.assign({x: x(a.hsl.lightness), y: y(a.hsl.saturation)}, a));
 
+const simulation = d3.forceSimulation();
+simulation.nodes(greenColors);
 
-})
+function ticked() {
+    node
+        .attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; });
+}
 
+simulation
+  .force("charge", d3.forceManyBody())
+  .force("collide", d3.forceCollide())
+simulation.force("charge")
+  .strength(16)
+  .distanceMin(1)
+  .distanceMax(200);
+simulation.force("collide")
+  .strength(0.7)
+  .radius(20)
+  .iterations(1);
+simulation.on("tick", ticked);
+
+// Add dots
+const node = svg.append('g')
+  .selectAll("dot")
+  .data(greenColors)
+  .enter()
+  .append("circle")
+    .attr("cx", function (d) { return x(d.hsl.lightness); } )
+    .attr("cy", function (d) { return y(d.hsl.saturation); } )
+    .attr("r", 10)
+    .style("fill", function(d) { return d.hex})
+    .on("mouseover", function(d) { console.log(d)})
+
+// simulation.stop()
+// for (var i = 0; i < 1; ++i) { simulation.tick(); ticked(); };
 </script>
