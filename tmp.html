@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.axis text {
+  font: 10px sans-serif;
+}
+
+.cells path {
+  fill: none;
+  pointer-events: all;
+}
+
+.cells :hover circle {
+  stroke: #000;
+  stroke-width: 1px;
+}
+
+</style>
+<svg width="960" height="300"></svg>
+<script src="colors.js"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+// Respectful bow to bostock https://blockbuilder.org/mbostock/6526445e2b44303eebf21da3b6627320
+
+// Convert the provided hex string into hue, saturation, and lightness values.
+const hexToHsl = hex => {
+  var r = parseInt(hex.substr(1,2), 16); // Grab the hex representation of red (chars 1-2) and convert to decimal (base 10).
+  var g = parseInt(hex.substr(3,2), 16);
+  var b = parseInt(hex.substr(5,2), 16);
+  r /= 255, g /= 255, b /= 255;
+  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var h, s, l = (max + min) / 2;
+
+  if (max == min) {
+      h = s = 0; // achromatic
+  } else {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max){
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+  }
+
+  return {
+    hue: Math.floor(h * 360),
+    saturation: s,
+    lightness: l,
+  };
+}
+
+var svg = d3.select("svg"),
+    margin = {top: 40, right: 40, bottom: 40, left: 40},
+    width = svg.attr("width") - margin.left - margin.right,
+    height = svg.attr("height") - margin.top - margin.bottom;
+
+var formatValue = d3.format(",d");
+
+// Create the x-axis.
+var x = d3.scaleLinear()
+    .domain([0, 360])
+    .range([0, width]);
+
+var g = svg.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// Convert name to hex map to an array of nodes for d3 containing name and hsl.
+let cssColorNodes = Object.entries(cssColors).map(a => ({name: a[0], hex: a[1], hsl: hexToHsl(a[1])}));
+// cssColorNodes = cssColorNodes.filter(a => a.hsl.saturation < 0.25);
+// console.log(cssColorNodes)
+var simulation = d3.forceSimulation(cssColorNodes)
+    .force("x", d3.forceX(function(d) { return x(d.hsl.hue); }).strength(1))
+    .force("y", d3.forceY(height / 2))
+    .force("collide", d3.forceCollide(8))
+    .stop();
+
+for (var i = 0; i < 120; ++i) simulation.tick();
+
+g.append("g")
+    .attr("class", "axis axis--x")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x).ticks(20, ".0s"));
+
+var cell = g.append("g")
+    .attr("class", "cells")
+  .selectAll("g").data(d3.voronoi()
+      .extent([[-margin.left, -margin.top], [width + margin.right, height + margin.top]])
+      .x(function(d) { return d.x; })
+      .y(function(d) { return d.y; })
+    .polygons(cssColorNodes)).enter().append("g")
+    .on('mouseover', (d) => {console.log(d.data)});
+
+cell.append("circle")
+    .attr("r", 6)
+    .attr("cx", function(d) { return d.data.x; })
+    .attr("cy", function(d) { return d.data.y; })
+    .attr("fill", function(d) { return d.data.hex; });
+
+cell.append("path")
+    .attr("d", function(d) { return "M" + d.join("L") + "Z"; });
+
+cell.append("title")
+    .text(function(d) { return d.data.name });
+
+function type(d) {
+  if (!d.value) return;
+  d.value = +d.value;
+  return d;
+}
+
+</script>

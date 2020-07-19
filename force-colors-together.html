@@ -120,9 +120,9 @@ simulation.force("charge")
   .distanceMin(1)
   .distanceMax(200);
 simulation.force("collide")
-  .strength(0.7)
+  .strength(0.3)
   .radius(20)
-  .iterations(1);
+  .iterations(10);
 simulation.on("tick", ticked);
 
 // Add dots
@@ -136,7 +136,9 @@ const node = svg.append('g')
     .attr("r", 10)
     .style("fill", function(d) { return d.hex})
     .on("mouseover", function(d) { console.log(d)})
+    // .append("text")
 
+console.log(node);
 // simulation.stop()
 // for (var i = 0; i < 1; ++i) { simulation.tick(); ticked(); };
 </script>
